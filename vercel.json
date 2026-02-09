@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/api/chat", "destination": "/api/chat" }
+  ],
+  "functions": {
+    "api/chat.js": {
+      "maxDuration": 30,
+      "includeFiles": "knowledge.md"
+    }
+  }
+}
