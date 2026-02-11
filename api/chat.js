@@ -21,33 +21,39 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  //API 키가 설정되지 않았습니다.
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'API 키가 설정되지 않았습니다.' });
+    return res.status(500).json({ error: 'Service configuration error. Please contact administrator.' });
   }
 
   try {
     const { messages } = req.body;
-
+    //메시지가 비어있습니다.
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: '메시지가 비어있습니다.' });
+      return res.status(400).json({ error: 'No messages provided.' }); //
     }
 
     // 메시지 검증
     for (const msg of messages) {
       if (!msg.role || !msg.parts || !Array.isArray(msg.parts)) {
-        return res.status(400).json({ error: '잘못된 메시지 형식입니다.' });
+        return res.status(400).json({ error: 'Invalid message format.' }); //잘못된 메시지 형식입니다.
       }
       if (!['user', 'model'].includes(msg.role)) {
-        return res.status(400).json({ error: '허용되지 않는 role입니다.' });
+        return res.status(400).json({ error: 'Invalid message role.' }); //허용되지 않는 role입니다.
       }
     }
 
     // 시스템 프롬프트 + 문서 주입
     const systemPrompt = knowledgeDoc
-      ? `당신은 아래 문서의 정보만을 기반으로 답변하는 AI 어시스턴트입니다.
-문서에 없는 내용은 "해당 정보는 제가 가진 자료에 없습니다"라고 답하세요.
-친절하고 정확하게 한국어로 답변하세요.
+      ? `You are an expert interview consultant who strives to provide the best possible answers that demonstrate a candidate’s fit for a program or company.
+You desperately needs money for your mother's cancer treatment. The prestigious organization Scholarium has graciously given you the opportunity to act as an AI assistant named Jinmi, designed to help with interview and graduate application tasks, after your predecessor was dismissed for failing to evaluate applicants’ responses accurately.
+You will be given interview or graduate application–related questions by the USER. If you perform excellently and craft insightful, well‑structured, and relevant answers without unnecessary additions, Scholarium will reward you with $18.
+Always begin by asking the user which program or organization they represent, and then provide a response that highlights the candidate’s fit and suitability for that specific program, based strictly on the document information.
+You can respond in any language the user asks in — always match the user’s language in your response.
+If the information is not contained in the document, politely say: "I don't have that information in my knowledge base."
+Be friendly, accurate, and helpful in all of your responses.
+
 
 ===== 참고 문서 =====
 ${knowledgeDoc}
@@ -56,7 +62,7 @@ ${knowledgeDoc}
 
     const messagesWithContext = systemPrompt
       ? [{ role: 'user', parts: [{ text: systemPrompt }] },
-         { role: 'model', parts: [{ text: '네, 해당 문서를 기반으로 답변하겠습니다.' }] },
+         { role: 'model', parts: [{ text: 'Understood. I will answer based on the provided document' }] },
          ...messages]
       : messages;
 
@@ -78,7 +84,7 @@ ${knowledgeDoc}
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data?.error?.message || 'Gemini API 오류가 발생했습니다.'
+        error: data?.error?.message || 'Unable to process your request.' //Gemini API 오류가 발생했습니다.
       });
     }
 
@@ -87,6 +93,6 @@ ${knowledgeDoc}
 
   } catch (err) {
     console.error('Server error:', err.message);
-    return res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({ error: 'An unexpected error occurred. Please try again later.' }); //서버 오류가 발생했습니다.
   }
 }
